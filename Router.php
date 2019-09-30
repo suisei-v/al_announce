@@ -6,13 +6,15 @@ class Router
 {
     private $ms;
     private $db;
-    private $botname;
+	private $botname;
+	private $format;
     
     public function __construct($ms, $pdo, $botname)
     {
         $this->botname = $botname;
         $this->ms = $ms;
-        $this->db = new Database($pdo);
+		$this->db = new Database($pdo);
+		$this->format = false;
     }
 
     private function checkCommand($cmd, $target)
@@ -79,11 +81,15 @@ class Router
         else if ($this->checkCommand($command['name'], "/del"))
             $reply = $this->routeDel($chat_id, $command['args']);
         else if ($this->checkCommand($command['name'], "/clear"))
-            $reply = $this->routeClear($chat_id);
+			$reply = $this->routeClear($chat_id);
+		else if ($this->checkCommand($command['name'], "/creator"))
+			$reply = $this->routeCreator($chat_id);
         else
-            $reply = $this->routeUnknown($chat_id);
-        $this->ms->sendMessage($chat_id, $reply, ['parse_mode' => 'Markdown',
-                                                  'disable_notification' => true]);
+				$reply = $this->routeUnknown($chat_id);
+		$opt = ['disable_notification' => true];
+		if ($this->format)
+			$opt = array_merge($opt, ['parse_mode' => 'Markdown']);
+        $this->ms->sendMessage($chat_id, $reply, $opt);
     }
 
     private function formatDescription($command, $description)
@@ -92,15 +98,19 @@ class Router
     }
 
     private function routeHelp($chat_id)
-    {
-        $msg = '';
+	{
+		$this->format = true;
+	    $msg = '';
+		$msg .= "По умолчанию бот рассылает уведомления о всех выходящих сериях. ";
+		$msg .= "Если добавить фильтры, будут приходить уведомления только о тех тайтлах, ";
+		$msg .= "где в названии есть часть слова-фильтра." . PHP_EOL . PHP_EOL;
         $msg .= $this->formatDescription("/start", "Запустить бота");
         $msg .= $this->formatDescription("/stop", "Остановить бота");
         $msg .= $this->formatDescription("/filter", "Показать текущие фильтры");
         $msg .= $this->formatDescription("/add `[фильтр1, фильтр2, ...]`",
                                   "Добавить указанные фильтры");
         $msg .= $this->formatDescription("/del `[фильтр1, фильтр2, ...]`",
-                                  "Добавить указанные фильтры. ".
+                                  "Удалить указанные фильтры. ".
                                   "Поиск по части слова. " .
                                   "Удаляются все совпадения.");
         $msg .= $this->formatDescription("/clear", "Очистить фильтры");
@@ -110,13 +120,13 @@ class Router
     private function routeStart($chat_id)
     {
         $this->db->updateActive($chat_id, true);
-        $msg = "Бот активирован";
+        $msg = "Бот активирован.";
         return $msg;
     }
     private function routeStop($chat_id)
     {
         $this->db->updateActive($chat_id, false);
-        $msg = "Бот деактивирован";
+        $msg = "Бот деактивирован.";
         return $msg;
     }
     private function routeFilter($chat_id)
@@ -165,7 +175,14 @@ class Router
         $this->db->clearFilter($chat_id);
         $msg = "Все фильтры были очищены.";
         return $msg;
-    }
+	}
+
+	private function routeCreator($chat_id)
+	{
+		$msg = "@suisei_v";
+		return $msg;
+	}
+
     private function routeUnknown($chat_id)
     {
         $msg = "Неизвестная команда. Справка /help";

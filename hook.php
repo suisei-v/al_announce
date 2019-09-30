@@ -50,9 +50,10 @@ else
 	Title <br>
 	<input type="text" value="Вышла новая серия!" name="title"> <br>
 	Text <br>
-	<input type="text" value="<?php echo $_POST['text']; ?>" name="text"> <br>
+	<input type="text" value="<?php echo $_POST['text'] ?? ''; ?>" name="text"> <br>
 	URL <br>
-	<input type="text" value="<?php echo $_POST['url']; ?>" name="url"> <br>
+	<input type="text" value="<?php echo $_POST['url'] ?? ''; ?>" name="url"> <br>
+	Token <br>
+	<input type="text" value="" name="token"> <br>
 	<input type="submit" value="send" name="submit"> <br>
-	<input type="hidden" value="<?php echo $token; ?>" name="token">
 </form>
