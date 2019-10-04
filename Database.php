@@ -12,7 +12,7 @@ class Database
     public function getEntry($chat_id)
     {
         $stmt = $this->pdo->prepare(
-            'SELECT chat_id, keywords FROM chats WHERE chat_id = :id');
+            'SELECT chat_id, keywords, active FROM chats WHERE chat_id = :id');
         $stmt->execute(['id' => $chat_id]);
         $res = $stmt->fetch();
         //error_log(var_export($res, true));
