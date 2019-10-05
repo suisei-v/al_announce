@@ -90,14 +90,15 @@ class Replies
         $arr = [
             "Я вас не понимаю",
             "Я еще глупенькая и не понимаю таких слов",
-            "Чего чего?",
+            "Чего-чего?",
             "Не понимаю я вас, извините",
-            "Я не понимаю"
+            "Я не понимаю",
+            "Не понимаю я вас"
         ];
-        if (rand(1, 100) > 95)
+        if (rand(1, 100) > 98)
             $msg = "Я тут чтобы вам об аниме сообщать а не разговоры разговаривать!";
-        else if (rand(1, 200) > 198) {
-            return $this->generateRandomString(500);
+        else if (rand(1, 500) > 495) {
+            return $this->generateRandomString(rand(10, 1000));
         }
         else
             $msg = $arr[array_rand($arr)];
@@ -133,19 +134,37 @@ class Replies
         return $msg;
     }
 
+    public function help2()
+    {
+        $msg = $this->help2Commands();
+        return $msg;
+    }
+
     private function helpCommands()
     {
         $msg = '';
-        $msg .= $this->formatDescription("/start", "Включить");
-        $msg .= $this->formatDescription("/stop", "Выключить");
-        $msg .= $this->formatDescription("/filter", "Показать текущие фильтры");
-        $msg .= $this->formatDescription("/add `[фильтр1, фильтр2, ...]`",
-                                         "Добавить указанные фильтры");
-        $msg .= $this->formatDescription("/del `[фильтр1, фильтр2, ...]`",
+        $msg .= $this->formatDescription("/start", "Включить.");
+        $msg .= $this->formatDescription("/stop", "Выключить.");
+        $msg .= $this->formatDescription("/filter", "Показать текущие фильтры.");
+        $msg .= $this->formatDescription("/add <code>[фильтр1, фильтр2, ...]</code>",
+                                         "Добавить указанные фильтры.");
+        $msg .= $this->formatDescription("/del <code>[фильтр1, фильтр2, ...]</code>",
                                          "Удалить указанные фильтры. ".
                                          "Можно вписать только часть слова, " .
                                          "удалю все совпадения.");
-        $msg .= $this->formatDescription("/clear", "Очистить фильтры");
+        $msg .= $this->formatDescription("/clear", "Очистить фильтры.");
+        $msg .= "Дополнительные команды - /help2";
+        return $msg;
+    }
+
+    private function help2Commands()
+    {
+        $msg = '';
+        $msg .= $this->formatDescription("/help", "Основная справка.");
+        $msg .= $this->formatDescription("/convert <code>[текст]</code>",
+                                         "Конвертировать текст после команды из *.ass " .
+                                         "в human-friendly вариант.");
+        $msg .= "/creator";
         return $msg;
     }
 

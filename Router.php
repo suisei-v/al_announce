@@ -1,7 +1,9 @@
 <?php
+
 require_once "Database.php";
 require_once "MessageSender.php";
 require_once "Replies.php";
+require_once "Script.php";
 
 class Router
 {
@@ -29,26 +31,6 @@ class Router
         return false;
     }
 
-    private function getCommand($message)
-    {
-        $first_space_pos = strpos($message, ' ');
-        if ($first_space_pos === false)
-            $first_space_pos = strlen($message);
-        $name = substr($message, 0, $first_space_pos);
-        $arguments_str = substr($message, $first_space_pos + 1);
-        if ($arguments_str)
-        {
-            $args = explode(',', $arguments_str);
-            foreach ($args as &$val)
-                $val = trim($val);
-            if ($args)
-                $keywords = array_filter($args);
-            return ['name' => $name, 'args' => $args];
-        }
-        else
-            return ['name' => $name, 'args' => false];
-    }
-
     private function canRoute($update)
     {
         if (isset($update['channel_post']['chat']))
@@ -60,7 +42,44 @@ class Router
             return true;
         return false;
     }
-    
+
+    private function getFirstWhitespace($message)
+    {
+        $sp_pos = mb_strpos($message, ' ');
+        $sp_pos = $sp_pos ? $sp_pos : mb_strlen($message);
+        $nl_pos = mb_strpos($message, PHP_EOL);
+        $nl_pos = $nl_pos ? $nl_pos : mb_strlen($message);
+        return min($sp_pos, $nl_pos);
+    }
+
+    private function getCommandName($message)
+    {
+        return mb_substr($message, 0, $this->getFirstWhitespace($message));
+    }
+
+    private function getCommandArg($message)
+    {
+        $arg = mb_substr($message, $this->getFirstWhitespace($message) + 1);
+        return trim($arg);
+    }
+
+    private function splitCmdArgToArray($message)
+    {
+        $arguments_str = $this->getCommandArg($message);
+        
+        if ($arguments_str)
+        {
+            $args = explode(',', $arguments_str);
+            foreach ($args as &$val)
+                $val = trim($val);
+            if ($args)
+                $keywords = array_filter($args);
+            return $args;
+        }
+        else
+            return false;
+    }
+
     public function route($update)
     {
         if (!$this->canRoute($update))
@@ -74,35 +93,44 @@ class Router
             return false;
         if (!$message)
             return false;
-        $command = $this->getCommand($message);
-        if ($this->checkCommand($command['name'], "/help"))
-            $reply = $this->routeHelp($chat_id);
-        else if ($this->checkCommand($command['name'], "/start"))
+
+        $command_name = $this->getCommandName($message);
+        
+        if ($this->checkCommand($command_name, "/help"))
+            $reply = $this->routeHelp($chat_id, 1);
+        else if ($this->checkCommand($command_name, "/help2"))
+            $reply = $this->routeHelp($chat_id, 2);
+        else if ($this->checkCommand($command_name, "/start"))
             $reply = $this->routeStart($chat_id);
-        else if ($this->checkCommand($command['name'], "/stop"))
+        else if ($this->checkCommand($command_name, "/stop"))
             $reply = $this->routeStop($chat_id);
-        else if ($this->checkCommand($command['name'], "/filter"))
+        else if ($this->checkCommand($command_name, "/filter"))
             $reply = $this->routeFilter($chat_id);
-        else if ($this->checkCommand($command['name'], "/add"))
-            $reply = $this->routeAdd($chat_id, $command['args']);
-        else if ($this->checkCommand($command['name'], "/del"))
-            $reply = $this->routeDel($chat_id, $command['args']);
-        else if ($this->checkCommand($command['name'], "/clear"))
+        else if ($this->checkCommand($command_name, "/add"))
+            $reply = $this->routeAdd($chat_id, $message);
+        else if ($this->checkCommand($command_name, "/del"))
+            $reply = $this->routeDel($chat_id, $message);
+        else if ($this->checkCommand($command_name, "/clear"))
 			$reply = $this->routeClear($chat_id);
-		else if ($this->checkCommand($command['name'], "/creator"))
+		else if ($this->checkCommand($command_name, "/creator"))
 			$reply = $this->routeCreator($chat_id);
+        else if ($this->checkCommand($command_name, "/convert"))
+            $reply = $this->routeConvert($chat_id, $message);
         else
             $reply = $this->routeUnknown($chat_id);
-		$opt = ['disable_notification' => true];
-		if ($this->format)
-			$opt = array_merge($opt, ['parse_mode' => 'Markdown']);
-        $this->ms->sendMessage($chat_id, $reply, $opt);
+
+        $this->ms->sendMessage($chat_id, $reply, $this->format ?
+                               ['parse_mode' => $this->format] : []);
     }
 
-    private function routeHelp($chat_id)
+    private function routeHelp($chat_id, $n)
 	{
-		$this->format = true;
-        return $this->replies->help();
+		$this->format = "HTML";
+
+        if ($n === 1)
+            return $this->replies->help();
+        if ($n === 2)
+            return $this->replies->help2();
     }
 
     private function routeStart($chat_id)
@@ -137,8 +165,10 @@ class Router
             $msg .= "(пусто)";
         return $msg;
     }
-    private function routeAdd($chat_id, $args)
+    
+    private function routeAdd($chat_id, $message)
     {
+        $args = $this->splitCmdArgToArray($message);
         if (!$args)
             $msg = "Перечислите фильтры через запятую после команды.";
         else {
@@ -148,8 +178,10 @@ class Router
         }
         return $msg;
     }
-    private function routeDel($chat_id, $args)
+    
+    private function routeDel($chat_id, $message)
     {
+        $args = $this->splitCmdArgToArray($message);
         if (!$args)
             $msg = "Введите список фильтров для удаления после команды.";
         else
@@ -171,6 +203,15 @@ class Router
 		$msg = "@suisei_v";
 		return $msg;
 	}
+
+    private function routeConvert($chat_id, $message)
+    {
+        $text = $this->getCommandArg($message);
+        if (empty($text))
+            return "Передайте текст сразу после команды.";
+        $script = new Script($text);   
+        return (string)$script;
+    }
 
     private function routeUnknown($chat_id)
     {
