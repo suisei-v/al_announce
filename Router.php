@@ -12,14 +12,16 @@ class Router
 	private $botname;
 	private $format;
     private $replies;
+    private $admin_list;
     
-    public function __construct($ms, $pdo, $botname)
+    public function __construct($ms, $pdo, $botname, $admin_list)
     {
         $this->botname = $botname;
         $this->ms = $ms;
 		$this->db = new Database($pdo);
 		$this->format = false;
         $this->replies = new Replies();
+        $this->admin_list = $admin_list;
     }
 
     private function checkCommand($cmd, $target)
@@ -95,9 +97,18 @@ class Router
             return false;
 
         $command_name = $this->getCommandName($message);
-        
-        if ($this->checkCommand($command_name, "/help"))
-            $reply = $this->routeHelp($chat_id, 1);
+
+        $is_admin = in_array($chat_id, $this->admin_list);
+        if ($is_admin && $this->checkCommand($command_name, "/info"))
+            $reply = $this->routeInfo($chat_id);
+        else if ($is_admin && $this->checkCommand($command_name, "/announce"))
+            $reply = $this->routeAnnounce($chat_id, $message);
+        else if ($is_admin && $this->checkCommand($command_name, "/announce_all"))
+            $reply = $this->routeAnnounce($chat_id, $message);
+        else if ($is_admin && $this->checkCommand($command_name, "/help_admin"))
+            $reply = $this->routeHelp($chat_id, 3, $message);
+        else if ($this->checkCommand($command_name, "/help"))
+            $reply = $this->routeHelp($chat_id, 1, $is_admin);
         else if ($this->checkCommand($command_name, "/help2"))
             $reply = $this->routeHelp($chat_id, 2);
         else if ($this->checkCommand($command_name, "/start"))
@@ -123,14 +134,16 @@ class Router
                                ['parse_mode' => $this->format] : []);
     }
 
-    private function routeHelp($chat_id, $n)
+    private function routeHelp($chat_id, $n, $is_admin = false)
 	{
 		$this->format = "HTML";
-
+        $entry = $this->db->getEntry($chat_id);
         if ($n === 1)
-            return $this->replies->help();
+            return $this->replies->help($entry['name'], $is_admin);
         if ($n === 2)
             return $this->replies->help2();
+        if ($n === 3)
+            return $this->replies->helpAdmin();
     }
 
     private function routeStart($chat_id)
@@ -217,5 +230,35 @@ class Router
     {
         $msg = $this->replies->dontUnderstand();
         return $msg;
+    }
+
+    private function routeInfo($chat_id)
+    {
+        $all = $this->db->selectCountAll($chat_id);
+        $active = $this->db->selectCountActive($chat_id);
+        $msg = "Всего чатов — " . $all . ", из них " . $active . " активных.";
+        return $msg;
+    }
+
+    private function routeAnnounce($chat_id, $message, $force = false)
+    {
+        $text = $this->getCommandArg($message);
+        if (empty($text))
+            return "Напишите сообщение сразу после команды.";
+        $entries = $this->db->getAllEntries();
+        $i = 0;
+        foreach ($entries as $val) {
+            $cid = $val['chat_id'];
+            if ($cid == $chat_id)
+                continue ;
+            if ($force || $val['active'] == '1') {
+                $res = $this->ms->sendMessage($cid, $text);
+                if ($res == 403)
+                    $this->db->delete($cid);
+                else
+                    $i++;
+            }
+        }
+        return "Было отправлено $i сообщений.";
     }
 }

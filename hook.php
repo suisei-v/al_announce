@@ -33,7 +33,7 @@ if (isFromTelegram())
 {
     $response = file_get_contents('php://input');
     $update = json_decode($response, true);
-    $router = new Router($ms, $pdo, $botname);
+    $router = new Router($ms, $pdo, $botname, isset($admin_list) ? $admin_list : []);
     $router->route($update);
 }
 else

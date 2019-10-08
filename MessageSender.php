@@ -38,12 +38,15 @@ class MessageSender {
             error_log("curl error:  " . $error);
             return false;
         }
+        $httpcode = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
         $decoded = json_decode($res, true);
         if (!$decoded['ok']) {
-            error_log("$method error:  " . $decoded['description']);
-            return false;
+            error_log("$method error:  " .
+                      var_export($decoded, true) .
+                      " (code $httpcode)");
+            return $httpcode;
         }
-        return $res;
+        return $httpcode;
     }
     
     public function sendMessage($chat_id, $text, $optional = []) {

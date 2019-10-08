@@ -107,8 +107,12 @@ class Replies
         return $msg;
     }
 
-    public function help()
+    public function help($name, $is_admin)
     {
+        $msg = "Привет, $name!" . PHP_EOL;
+        if ($is_admin)
+            $msg .= "<i>Вы админ, команды специально для вас /help_admin</i>" . PHP_EOL;
+        $msg .= PHP_EOL;
         $arr = [
             "Пока я работаю, я буду присылать уведомления о всех-всех-всех новых сериях! " .
             "Но вы можете добавить несколько фильтров, и тогда я буду фильтровать релизы " .
@@ -117,7 +121,7 @@ class Replies
             "Пока я работаю, я буду присылать уведомления о всех новых сериях. " .
             "Но если вы добавите несколько фильтров, то я буду фильтровть по ним релизы. "
         ];
-        $msg = $arr[array_rand($arr)] . PHP_EOL . PHP_EOL;
+        $msg .= $arr[array_rand($arr)] . PHP_EOL . PHP_EOL;
 
         $arr = [
             "Вот какие команды у меня есть: ",
@@ -130,13 +134,25 @@ class Replies
             $hereislist = $this->addPositive($hereislist);
         $msg .= $hereislist;
         $msg .=  PHP_EOL . PHP_EOL;
-        $msg .= $this->helpCommands();
+        $msg .= $this->helpCommands($is_admin);
         return $msg;
     }
 
     public function help2()
     {
         $msg = $this->help2Commands();
+        return $msg;
+    }
+
+    public function helpAdmin()
+    {
+        $msg = '';
+        $msg .= $this->formatDescription("/info", "Количество подключенных чатов.");
+        $msg .= $this->formatDescription("/announce <code>[сообщение]</code>",
+                                         "Отправить сообщение во все подключенные чаты.");
+        $msg .= $this->formatDescription("/announce_all <code>[сообщение]</code>",
+                                         "Отправить сообщение во все подключенные чаты, " .
+                                         "даже если пользователь использовал <code>/stop</code>.");
         return $msg;
     }
 

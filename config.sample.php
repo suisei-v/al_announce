@@ -10,3 +10,9 @@ $proxy = false;
 $DB_DSN = "mysql:dbname=db;host=127.0.0.1";
 $DB_USER = "user";
 $DB_PASSWORD = "pass";
+
+// list of chat_ids
+$admin_list = [             
+    "123456",
+    "789012"
+];

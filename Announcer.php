@@ -33,7 +33,11 @@ class Announcer
         {
             $chat_id = $val['chat_id'];
             if ($val['active'] == '1' && $this->isNeedToSend($val, $text))
-                $this->ms->sendMessage($chat_id, $msg);
+            {
+                $res = $this->ms->sendMessage($chat_id, $msg);
+                if ($res == 403)
+                    $this->db->delete($chat_id);
+            }
         }
     }
 }

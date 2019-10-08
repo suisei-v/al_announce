@@ -12,7 +12,7 @@ class Database
     public function getEntry($chat_id)
     {
         $stmt = $this->pdo->prepare(
-            'SELECT chat_id, keywords, active FROM chats WHERE chat_id = :id');
+            'SELECT * FROM chats WHERE chat_id = :id');
         $stmt->execute(['id' => $chat_id]);
         $res = $stmt->fetch();
         //error_log(var_export($res, true));
@@ -22,7 +22,7 @@ class Database
     public function getAllEntries()
     {
         $stmt = $this->pdo->prepare(
-            'SELECT chat_id, active, keywords FROM chats');
+            'SELECT * FROM chats');
         $stmt->execute();
         $res = $stmt->fetchAll();
         return $res;
@@ -138,5 +138,33 @@ class Database
         $stmt->bindValue(':chat_id', $chat_id);
 
         $stmt->execute();
+    }
+
+    public function selectCountAll($chat_id)
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM chats'
+        );
+        $stmt->execute();
+        $res = $stmt->fetch();
+        return $res[0];
+    }
+
+    public function selectCountActive($chat_id)
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM chats WHERE active = 1'
+        );
+        $stmt->execute();
+        $res = $stmt->fetch();
+        return $res[0];
+    }
+
+    public function delete($chat_id)
+    {
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM chats WHERE chat_id = :chat_id'
+        );
+        $stmt->execute([':chat_id' => $chat_id]);
     }
 }
